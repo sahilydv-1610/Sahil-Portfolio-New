@@ -34,7 +34,7 @@ const portfolioData = {
   ],
   "experience": [
     { 
-      "role": "Junior Web Developer",
+      "role": "Web Developer Learner",
       "company": "Lovely Professional University",
       "period": "2023 - Present",
       "description": "Developing and maintaining front-end components using React and Tailwind CSS. Collaborating with senior developers on large-scale projects."
@@ -46,7 +46,7 @@ const portfolioData = {
       "description": "Managed and scaled social media platforms by creating engaging content, optimizing performance through analytics, and driving audience growth through strategic digital campaigns."
     },
     {
-      "role": "Volunteer / Environmental Advocate",
+      "role": "Volunteer / Community Development Project",
       "company": "Samarpan NGO",
       "period": "2022 - 2023",
       "description": "Led community awareness programs on the Greenhouse Effect and sustainability, educating local groups on climate change mitigation and eco-friendly practices."
