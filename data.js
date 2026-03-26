@@ -34,7 +34,7 @@ const portfolioData = {
   ],
   "experience": [
     { 
-      "role": "Web Developer Learner",
+      "role": "Full Stack Developer",
       "company": "Lovely Professional University",
       "period": "2023 - Present",
       "description": "Developing and maintaining front-end components using React and Tailwind CSS. Collaborating with senior developers on large-scale projects."
