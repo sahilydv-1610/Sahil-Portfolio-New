@@ -140,6 +140,9 @@ h1, h2, h3, h4, .font-heading {
 .glass-card:hover {
   background: rgba(30, 41, 59, 0.4);
   border-color: rgba(16, 185, 129, 0.6);
+}
+
+.project-card:hover {
   transform: translateY(-12px) scale(1.03);
   box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6), 0 0 20px rgba(16, 185, 129, 0.2);
 }

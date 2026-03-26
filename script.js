@@ -99,7 +99,7 @@ function setContent(id, content, isHTML = false) {
 }
 
 function initTilt() {
-    document.querySelectorAll('.glass-card').forEach(card => {
+    document.querySelectorAll('.glass-card:not(.project-card)').forEach(card => {
         card.addEventListener('mousemove', (e) => {
             const rect = card.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -228,7 +228,7 @@ function renderSkills(skills) {
 function renderProjects(projects) {
     if (!projects) return;
     const html = projects.map(project => `
-        <div class="glass-card rounded-[2.5rem] overflow-hidden group border border-white/5 reveal">
+        <div class="glass-card project-card rounded-[2.5rem] overflow-hidden group border border-white/5 reveal">
             <div class="h-72 overflow-hidden relative">
                 <img src="${project.image}" alt="${project.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">
                 <div class="absolute inset-0 bg-gradient-to-t from-dark/90 via-dark/20 to-transparent"></div>
