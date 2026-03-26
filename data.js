@@ -1,0 +1,208 @@
+const portfolioData = {
+  "personal": {
+    "name": "Sahil",
+    "role": "Full Stack Developer",
+    "profileImage": "assets/profile.jpg",
+    "bio": "A passionate developer with a knack for creating beautiful and functional web applications. Experienced in modern web technologies and always eager to learn new things.",
+    "cvUrl": "assets/sahil cv2.pdf",
+    "social": [
+      { "platform": "GitHub", "url": "https://github.com/sahilydv-1610", "icon": "github" },
+      { "platform": "LinkedIn", "url": "https://www.linkedin.com/in/sahil-sahil-236482251", "icon": "linkedin" },
+      { "platform": "Twitter", "url": "https://x.com/Sahilyd97117696", "icon": "twitter" },
+      { "platform": "Instagram", "url": "#", "icon": "instagram" }
+    ]
+  },
+  "education": [
+    {
+      "degree": "Bachelor of Technology in Computer Science",
+      "institution": "Lovely Professional University",
+      "period": "2023 - 2027",
+      "description": "Acquiring advanced proficiency in computer science fundamentals, focusing on full-stack architecture, data structures, and algorithmic optimization for high-performance systems."
+    },
+    {
+      "degree": "Senior Secondary Education (XII)",
+      "institution": "Yaduvanshi Shiksha Niketan",
+      "period": "2022 - 2023",
+      "description": "Specialized in the Science stream (PCM), achieving 78.2%. Developed a strong mathematical foundation and analytical problem-solving skills."
+    },
+    {
+      "degree": "Secondary Education (X)",
+      "institution": "Yaduvanshi Shiksha Niketan",
+      "period": "2020 - 2021",
+      "description": "Completed foundational schooling with a score of 70%, focusing on core sciences and nurturing an early interest in technology and computer systems."
+    }
+  ],
+  "experience": [
+    { 
+      "role": "Junior Web Developer",
+      "company": "Lovely Professional University",
+      "period": "2023 - Present",
+      "description": "Developing and maintaining front-end components using React and Tailwind CSS. Collaborating with senior developers on large-scale projects."
+    },
+    {
+      "role": "Social Media Management",
+      "company": "Lovely Professional University",
+      "period": "2024 - 2025",
+      "description": "Managed and scaled social media platforms by creating engaging content, optimizing performance through analytics, and driving audience growth through strategic digital campaigns."
+    },
+    {
+      "role": "Volunteer / Environmental Advocate",
+      "company": "Samarpan NGO",
+      "period": "2022 - 2023",
+      "description": "Led community awareness programs on the Greenhouse Effect and sustainability, educating local groups on climate change mitigation and eco-friendly practices."
+    },
+    {
+      "role": "Data Structure and Algorithm",
+      "company": "CipherSchools",
+      "period": "2024 - 2025",
+      "description": "Completed intensive training in Data Structures and Algorithms using Java, focusing on problem-solving efficiency and scalable code architecture."
+    }
+  ],
+  "skills": {
+    "timeline": [
+      { 
+        "year": "2023", 
+        "title": "Foundation & Web Basics",
+        "skills": ["Python", "HTML5", "CSS3"],
+        "description": "Began the journey with core logic and web structures."
+      },
+      { 
+        "year": "2024", 
+        "title": "Data & Performance",
+        "skills": ["C", "DBMS", "C++", "DSA"],
+        "description": "Deep dived into algorithms and database management systems."
+      },
+      { 
+        "year": "2025", 
+        "title": "Full Stack Development",
+        "skills": ["PHP", "SQL", "React.js", "Node.js", "MongoDB"],
+        "description": "Architecting complete ecosystems and dynamic user experiences."
+      },
+      { 
+        "year": "2026", 
+        "title": "Modern Scale & Future",
+        "skills": ["Next.js", "TypeScript", "Docker", "Cloud (AWS)", "Socket.io"],
+        "description": "Focusing on scalable microservices and real-time connectivity."
+      }
+    ],
+    "soft": [
+      { "name": "Leadership", "level": 90 },
+      { "name": "Communication", "level": 95 },
+      { "name": "Team Management", "level": 92 },
+      { "name": "Strategic Planning", "level": 88 },
+      { "name": "Critical Thinking", "level": 93 },
+      { "name": "Adaptability", "level": 90 },
+      { "name": "Problem Solving", "level": 96 },
+      { "name": "Time Management", "level": 85 },
+      { "name": "Conflict Resolution", "level": 80 },
+      { "name": "Mentorship", "level": 88 },
+      { "name": "Public Speaking", "level": 82 },
+      { "name": "Emotional Intelligence", "level": 94 }
+    ]
+  },
+  "projects": [
+    {
+      "title": "Video Downloader",
+      "description": "A high-performance media utility for downloading videos from multiple platforms with a focus on speed and ease of use.",
+      "tech": ["HTML", "Tailwind", "JavaScript"],
+      "link": "https://github.com/sahilydv-1610/VideoDownloader",
+      "image": "assets/Screenshot 2026-03-26 034826.png"
+    },
+    {
+      "title": "Chit Chat",
+      "description": "A real-time chatting website built for seamless peer-to-peer communication with encrypted message handling.",
+      "tech": ["React", "Socket.io", "Tailwind"],
+      "link": "https://github.com/sahilydv-1610/ChitChat",
+      "image": "assets/Screenshot 2026-03-26 034231.png"
+    }
+  ],
+  "certificates": [
+    {
+      "title": "Basics of Web Development",
+      "issuer": "Gnanavasi Technology",
+      "date": "2024",
+      "image": "assets/cert1.png",
+      "verifyUrl": ""
+    },
+    {
+      "title": "Cloud Computing",
+      "issuer": "NPTEL (IIT Kharagpur)",
+      "date": "2025",
+      "image": "assets/cert2.png",
+      "verifyUrl": "https://archive.nptel.ac.in/noc/Ecertificate/?q=NPTEL25CS11S153730252204249402"
+    },
+    {
+      "title": "Data Structure and Algorithm using Java",
+      "issuer": "CipherSchools",
+      "date": "2025",
+      "image": "assets/cert3.png",
+      "verifyUrl": "https://www.cipherschools.com/certificate/preview?id=687cfedc06ffe76122762e00"
+    },
+    {
+      "title": "Computer Networking",
+      "issuer": "Google (Coursera)",
+      "date": "2024",
+      "image": "assets/cert4.png",
+      "verifyUrl": "https://www.coursera.org/account/accomplishments/verify/12F8V48GNOH9"
+    },
+    {
+      "title": "Unlocking DSA with C",
+      "issuer": "CSE Pathshala",
+      "date": "2024",
+      "image": "assets/cert5.png",
+      "verifyUrl": ""
+    }
+  ],
+  "services": [
+    {
+      "title": "Full Stack Development",
+      "description": "Building scalable, performant web applications from scratch using modern stacks like MERN and Next.js.",
+      "icon": "layers"
+    },
+    {
+      "title": "UI/UX Design",
+      "description": "Crafting intuitive, user-centric interfaces with a focus on glassmorphism and modern design systems.",
+      "icon": "palette"
+    },
+    {
+      "title": "API Integration",
+      "description": "Developing and integrating robust RESTful and GraphQL APIs for seamless data flow between systems.",
+      "icon": "link"
+    },
+    {
+      "title": "Tech Consulting",
+      "description": "Providing strategic advice on architecture, specialized in performance optimization and cloud scaling.",
+      "icon": "shield-check"
+    }
+  ],
+  "testimonials": [
+    {
+      "name": "Dr. Rajesh Verma",
+      "role": "Lovely Professional University",
+      "content": "Sahil is a very good student and has a bright future ahead.",
+      "avatar": "R"
+    },
+    {
+      "name": "Mr. BhikaRam Yadav",
+      "role": "Samarpan NGO",
+      "content": "A highly dedicated volunteer. Sahil's work in raising awareness about the Greenhouse effect was both impactful and creatively executed.",
+      "avatar": "A"
+    },
+    {
+      "name": "Cipher Instructor",
+      "role": "Technical Lead",
+      "content": "One of the standout performers in our training. Sahil's problem-solving approach in Java was consistently logic-driven and highly efficient.",
+      "avatar": "C"
+    },
+    {
+      "name": "Lovely Professional University",
+      "role": "Social Media MAnagement",
+      "content": " Managed and scaled social media platforms by creating engaging content, optimizing performance through analytics, and driving audience growth through strategic digital campaigns. ",
+      "avatar": "L"
+    }
+  ],
+  "contact": {
+    "email": "sahilydv114@gmail.com",
+    "location": "Lovely Professional University, Punjab"
+  }
+};

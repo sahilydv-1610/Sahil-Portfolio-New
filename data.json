@@ -1,0 +1,85 @@
+{
+  "personal": {
+    "name": "Sahil",
+    "role": "Full Stack Developer",
+    "bio": "A passionate developer with a knack for creating beautiful and functional web applications. Experienced in modern web technologies and always eager to learn new things.",
+    "social": [
+      { "platform": "GitHub", "url": "https://github.com/sahilydv-1610", "icon": "github" },
+      { "platform": "LinkedIn", "url": "https://www.linkedin.com/in/sahil-sahil-236482251", "icon": "linkedin" },
+      { "platform": "Twitter", "url": "https://x.com/SahilYadav1610", "icon": "twitter" }
+    ]
+  },
+  "education": [
+    {
+      "degree": "Bachelor of Technology in Computer Science",
+      "institution": "Lovely Professional University",
+      "period": "2023 - 2027",
+      "description": "Focused on software engineering, data structures, and algorithms."
+    }
+  ],
+  "experience": [
+    {
+      "role": "Junior Web Developer",
+      "company": "Lovely Professional University",
+      "period": "2023 - Present",
+      "description": "Developing and maintaining front-end components using React and Tailwind CSS. Collaborating with senior developers on large-scale projects."
+    },
+    {
+      "role": "Web Development Intern",
+      "company": "Creative Agency",
+      "period": "Summer 2022",
+      "description": "Assisted in building responsive landing pages and improving site performance."
+    }
+  ],
+  "skills": {
+    "technical": [
+      { "name": "HTML5", "level": 95 },
+      { "name": "CSS3 / Tailwind", "level": 90 },
+      { "name": "JavaScript (ES6+)", "level": 85 },
+      { "name": "React.js", "level": 80 },
+      { "name": "Node.js", "level": 75 },
+      { "name": "Python", "level": 70 }
+    ],
+    "soft": [
+      { "name": "Communication", "level": 90 },
+      { "name": "Teamwork", "level": 95 },
+      { "name": "Problem Solving", "level": 85 },
+      { "name": "Adaptability", "level": 90 }
+    ]
+  },
+  "projects": [
+    {
+      "title": "ChitChat Chating Platform",
+      "description": "A real-time chatting website built for seamless peer-to-peer communication with encrypted message handling.",
+      "tech": ["HTML", "Tailwind CSS", "JS", "React"],
+      "link": "https://github.com/sahilydv-1610/ChitChat",
+      "image": "assets/Screenshot 2026-03-26 034231.png"
+    },
+    {
+      "title": "Video Downloader",
+      "description": "Real-time weather updates using a public API with dynamic charts.",
+      "tech": ["JS", "OpenWeatherMap API", "Chart.js"],
+      "link": "https://github.com/sahilydv-1610/Video-Downloader",
+      "image": "assets/Screenshot 2026-03-26 034344.png"
+    }
+  ],
+  "certificates": [
+    {
+      "title": "Advanced JavaScript Certification",
+      "issuer": "Coursera",
+      "date": "2023",
+      "link": ""
+    },
+    {
+      "title": "Tailwind CSS Proficiency",
+      "issuer": "Udemy",
+      "date": "2022",
+      "link": "#"
+    }
+  ],
+  "contact": {
+    "email": "sahil@example.com",
+    "location": "Mumbai, India",
+    "phone": "+91 12345 67890"
+  }
+}
