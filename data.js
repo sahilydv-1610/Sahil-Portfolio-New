@@ -9,7 +9,7 @@ const portfolioData = {
       { "platform": "GitHub", "url": "https://github.com/sahilydv-1610", "icon": "github" },
       { "platform": "LinkedIn", "url": "https://www.linkedin.com/in/sahil-sahil-236482251", "icon": "linkedin" },
       { "platform": "Twitter", "url": "https://x.com/Sahilyd97117696", "icon": "twitter" },
-      { "platform": "Instagram", "url": "#", "icon": "instagram" }
+      { "platform": "Instagram", "url": "https://www.instagram.com/sahilydv_1610", "icon": "instagram" }
     ]
   },
   "education": [
@@ -106,14 +106,16 @@ const portfolioData = {
       "description": "A high-performance media utility for downloading videos from multiple platforms with a focus on speed and ease of use.",
       "tech": ["HTML", "Tailwind", "JavaScript"],
       "link": "https://github.com/sahilydv-1610/VideoDownloader",
-      "image": "assets/Screenshot 2026-03-26 034826.png"
+      "image": "assets/Screenshot 2026-03-26 034826.png",
+      "institute": "Lovely Professional University"
     },
     {
       "title": "Chit Chat",
       "description": "A real-time chatting website built for seamless peer-to-peer communication with encrypted message handling.",
       "tech": ["React", "Socket.io", "Tailwind"],
       "link": "https://github.com/sahilydv-1610/ChitChat",
-      "image": "assets/Screenshot 2026-03-26 034231.png"
+      "image": "assets/Screenshot 2026-03-26 034231.png",
+      "institute": "Lovely Professional University"
     }
   ],
   "certificates": [
@@ -206,3 +208,5 @@ const portfolioData = {
     "location": "Lovely Professional University, Punjab"
   }
 };
+
+window.portfolioData = portfolioData;

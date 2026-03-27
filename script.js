@@ -1,427 +1,497 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Lucide icons
-    lucide.createIcons();
+// Failsafe Initialization
+document.addEventListener('DOMContentLoaded', async () => {
+    try { await fetchData(); } catch (e) { console.error("Data rendering failed:", e); }
+    try { initThreeJS(); } catch (e) { console.warn("Three.js failed."); }
+    try { initLenis(); } catch (e) { console.warn("Lenis failed."); }
+});
 
-    // Fetch and populate data
-    fetchData();
+function initLenis() {
+    if (typeof Lenis === 'undefined') return;
+    lenis = new Lenis({ duration: 1.5, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true });
+    function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+    requestAnimationFrame(raf);
+    if (typeof ScrollTrigger !== 'undefined' && typeof gsap !== 'undefined') {
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add((time) => lenis.raf(time * 1000));
+    }
+}
 
-    // Hero Entry Animation
-    setTimeout(() => {
-        const heroContent = document.getElementById('hero-content');
-        heroContent.classList.remove('opacity-0', 'translate-y-10');
-    }, 100);
+function initThreeJS() {
+    if (typeof THREE === 'undefined') return;
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas) return;
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 1;
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const count = 6000;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count);
+    for (let i = 0; i < count * 3; i++) positions[i] = (Math.random() - 0.5) * 10;
+    for (let i = 0; i < count; i++) velocities[i] = Math.random() * 0.02 + 0.01;
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const material = new THREE.PointsMaterial({ size: 0.005, color: '#10b981', transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
+    particles = new THREE.Points(geometry, material);
+    scene.add(particles);
+    function animate() {
+        requestAnimationFrame(animate);
+        const pos = particles.geometry.attributes.position.array;
+        for (let i = 0; i < count; i++) {
+            pos[i * 3 + 2] += velocities[i] * 5;
+            if (pos[i * 3 + 2] > 2) pos[i * 3 + 2] = -8;
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+        renderer.render(scene, camera);
+    }
+    animate();
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+}
 
-    // Floating Navbar scroll effect
-    const navPill = document.getElementById('nav-pill');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 100) {
-            navPill.classList.add('py-2', 'px-6', 'bg-dark/90', 'border-primary/20');
-            navPill.classList.remove('py-3', 'px-8', 'border-white/10');
-        } else {
-            navPill.classList.add('py-3', 'px-8', 'border-white/10');
-            navPill.classList.remove('py-2', 'px-6', 'bg-dark/90', 'border-primary/20');
+let skillOrbitTimeline;
+
+function renderOrbitingSkills(skills) {
+    const container = document.getElementById('skill-orbit');
+    if (!container || !skills || skills.length === 0) return;
+
+    const uniqueSkills = [...new Set(skills)];
+    const batchSize = 8;
+    let currentStartIndex = 0;
+
+    function showBatch() {
+        const batch = [];
+        for (let i = 0; i < batchSize; i++) {
+            batch.push(uniqueSkills[(currentStartIndex + i) % uniqueSkills.length]);
+        }
+        currentStartIndex = (currentStartIndex + batchSize) % uniqueSkills.length;
+
+        // Clear and render new batch
+        const radius = window.innerWidth > 768 ? 200 : 150;
+        const html = batch.map((skill, i) => {
+            const angle = (i / batchSize) * Math.PI * 2;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            return `<div class="skill-circle opacity-0" style="left: calc(50% + ${x}px); top: calc(50% + ${y}px); transform: translate(-50%, -50%) scale(0.5);">${skill}</div>`;
+        }).join('');
+
+        // GSAP Transition
+        gsap.to(container.children, {
+            opacity: 0,
+            scale: 0,
+            duration: 1,
+            stagger: 0.1,
+            onComplete: () => {
+                container.innerHTML = html;
+                gsap.to(container.children, {
+                    opacity: 1,
+                    scale: 1,
+                    duration: 1.5,
+                    stagger: 0.1,
+                    ease: 'elastic.out(1, 0.5)'
+                });
+            }
+        });
+    }
+
+    // Initial show
+    showBatch();
+    
+    // Continuous rotation of the container (Counter-rotation for readability)
+    if (skillOrbitTimeline) skillOrbitTimeline.kill();
+    skillOrbitTimeline = gsap.to(container, {
+        rotation: 360,
+        duration: 50, // Much slower
+        repeat: -1,
+        ease: 'none',
+        onUpdate: function() {
+            const currentRotation = gsap.getProperty(container, "rotation");
+            // Counter-rotate all active skill circles
+            gsap.set(container.children, { rotation: -currentRotation });
         }
     });
 
-    // Mouse Menu Toggle
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    const closeMenuBtn = document.getElementById('close-menu-btn');
-    const mobileMenu = document.getElementById('mobile-menu');
+    // Cycle batches every 10 seconds for more reading time
+    setInterval(showBatch, 7000);
+}
 
-    mobileMenuBtn.addEventListener('click', () => {
-        mobileMenu.classList.remove('hidden');
-        mobileMenu.classList.add('flex');
-        document.body.style.overflow = 'hidden';
+function initGSAPAnimations() {
+    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+    gsap.registerPlugin(ScrollTrigger);
+    
+    // Hero Entrance Sequence
+    const tl = gsap.timeline();
+    tl.to('#hero-content', { opacity: 1, y: 0, duration: 1.5, ease: 'power4.out' })
+      .to('#hero-contact-block', { opacity: 1, y: 0, duration: 1.2, ease: 'power4.out' }, '-=0.8');
+
+    document.querySelectorAll('section').forEach(section => {
+        const reveals = section.querySelectorAll('.reveal-stagger');
+        if (reveals.length > 0) {
+            gsap.to(Array.from(reveals), { 
+                scrollTrigger: { trigger: section, start: 'top 85%' }, 
+                y: 0, 
+                opacity: 1, 
+                duration: 1, 
+                stagger: 0.1, 
+                ease: 'power3.out' 
+            });
+        }
     });
+}
 
-    const closeMenu = () => {
-        mobileMenu.classList.add('hidden');
-        mobileMenu.classList.remove('flex');
-        document.body.style.overflow = '';
-    };
-
-    closeMenuBtn.addEventListener('click', closeMenu);
-    document.querySelectorAll('.mobile-nav-link').forEach(link => {
-        link.addEventListener('click', closeMenu);
+function initInteractivity() {
+    if (typeof gsap === 'undefined') return;
+    document.querySelectorAll('.btn-primary').forEach(btn => {
+        btn.addEventListener('mouseenter', () => gsap.to(btn, { scale: 1.05, duration: 0.3, ease: 'power2.out' }));
+        btn.addEventListener('mouseleave', () => gsap.to(btn, { scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.5)' }));
     });
-
-    // Initial check for elements that need reveal
-    window.addEventListener('load', () => {
-        refreshReveals();
-    });
-});
+}
 
 async function fetchData() {
-    if (typeof portfolioData !== 'undefined') {
-        const data = portfolioData;
-        console.log("Portfolio Data detected, initiating secure render...");
+    try {
+        const response = await fetch('data.json');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
         
-        const renderTasks = [
-            { name: 'Personal', fn: () => renderPersonal(data.personal) },
-            { name: 'Education', fn: () => renderEducation(data.education) },
-            { name: 'Experience', fn: () => renderExperience(data.experience) },
-            { name: 'Skills', fn: () => renderSkills(data.skills) },
-            { name: 'Services', fn: () => renderServices(data.services) },
-            { name: 'Projects', fn: () => renderProjects(data.projects) },
-            { name: 'Certificates', fn: () => renderCertificates(data.certificates) },
-            { name: 'Testimonials', fn: () => renderTestimonials(data.testimonials) },
-            { name: 'Contact', fn: () => renderContact(data.contact) },
-            { name: 'Social', fn: () => renderSocial(data.personal.social) }
-        ];
+        // Expose to window for generic access if needed
+        window.portfolioData = data;
 
-        renderTasks.forEach(task => {
-            try {
-                task.fn();
-                console.log(`Successfully rendered: ${task.name}`);
-            } catch (err) {
-                console.warn(`Failed to render ${task.name}:`, err.message);
-            }
-        });
+        renderPersonal(data.personal);
+        renderEducation(data.education);
+        renderExperience(data.experience);
+        renderSkills(data.skills);
+        renderServices(data.services);
+        renderProjects(data.projects);
+        renderCertificates(data.certificates);
+        renderTestimonials(data.testimonials);
+        renderContact(data.contact);
+        renderSocial(data.personal.social);
+        
+        // Collect ALL skills for orbit
+        let allSkills = [];
+        if (data.skills.timeline) {
+            data.skills.timeline.forEach(t => allSkills.push(...t.skills));
+        }
+        if (data.skills.soft) {
+            data.skills.soft.forEach(s => allSkills.push(s.name));
+        }
+        renderOrbitingSkills(allSkills);
 
-        // Re-initialize for dynamic content
-        refreshIcons();
-        refreshReveals();
-        initTilt();
-    } else {
-        console.error('CRITICAL: portfolioData variable not found in data.js scope.');
+        initInteractivity();
+        initGSAPAnimations();
+        initNameTypingLoop(data.personal.name);
+        initRoleTypingLoop(data.personal.role);
+    } catch (error) {
+        console.error("Failed to fetch database data:", error);
     }
 }
 
-// Helper for safe DOM updates
 function setContent(id, content, isHTML = false) {
     const el = document.getElementById(id);
-    if (el) {
-        if (isHTML) el.innerHTML = content;
-        else el.textContent = content;
-        return true;
-    }
-    return false;
-}
-
-function initTilt() {
-    document.querySelectorAll('.glass-card:not(.project-card)').forEach(card => {
-        card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            
-            const rotateX = (y - centerY) / 20;
-            const rotateY = (centerX - x) / 20;
-            
-            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-12px) scale(1.03)`;
-        });
-        
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0) scale(1)`;
-        });
-    });
+    if (el) el[isHTML ? 'innerHTML' : 'textContent'] = content;
 }
 
 function renderPersonal(personal) {
     if (!personal) return;
-    document.title = `${personal.name} | Portfolio`;
-    
-    setContent('hero-name', personal.name.toUpperCase());
-    setContent('hero-role', personal.role.toUpperCase());
     setContent('hero-bio', personal.bio);
     setContent('nav-brand', `${personal.name.toUpperCase()}.`);
-    setContent('about-text', personal.bio);
-    
-    const profileImg = document.getElementById('profile-img');
-    if (profileImg && personal.profileImage) {
-        profileImg.src = personal.profileImage;
-    }
-
-    if (personal.cvUrl) {
-        const heroActions = document.getElementById('hero-actions');
-        if (heroActions && !document.getElementById('cv-button')) {
-            const cvBtn = document.createElement('a');
-            cvBtn.id = 'cv-button';
-            cvBtn.href = personal.cvUrl;
-            cvBtn.target = '_blank';
-            cvBtn.className = 'px-8 py-5 btn-primary text-dark font-black rounded-2xl hover:scale-105 transition-all text-center flex items-center justify-center shadow-lg';
-            cvBtn.innerHTML = `DOWNLOAD CV <i data-lucide="download" class="ml-2 w-4 h-4"></i>`;
-            heroActions.appendChild(cvBtn);
-            
-            const previewBtn = document.createElement('a');
-            previewBtn.href = personal.cvUrl;
-            previewBtn.target = '_blank';
-            previewBtn.className = 'px-6 py-2 glass-card text-xs font-black tracking-widest text-slate-300 hover:text-white transition-all uppercase rounded-xl border border-white/5';
-            previewBtn.textContent = 'Preview CV';
-            heroActions.appendChild(previewBtn);
-            
-            lucide.createIcons();
-        }
+    const img = document.getElementById('profile-img');
+    if (img && personal.profileImage) img.src = personal.profileImage;
+    const heroActions = document.getElementById('hero-actions');
+    if (heroActions && personal.cvUrl) {
+        heroActions.innerHTML = `
+            <a href="${personal.cvUrl}" target="_blank" class="px-8 py-5 btn-primary text-dark font-black rounded-2xl flex items-center justify-center shadow-lg">
+                DOWNLOAD CV <i class="fas fa-download ml-2 text-sm"></i>
+            </a>
+            <a href="${personal.cvUrl}" target="_blank" class="px-8 py-5 glass-card text-white font-black rounded-2xl flex items-center justify-center border border-white/10 hover:border-primary/50 transition-all font-heading">
+                VIEW FULL CV <i class="fas fa-eye ml-2 text-sm"></i>
+            </a>
+        `;
     }
 }
 
-function renderEducation(education) {
-    if (!education) return;
-    const html = education.map(edu => `
-        <div class="relative reveal group">
-            <div class="absolute -left-[41px] top-1 w-4 h-4 rounded-full bg-dark border-2 border-primary shadow-[0_0_10px_rgba(16,185,129,0.5)] group-hover:scale-125 transition-transform z-10"></div>
-            <h4 class="font-black text-xl mb-1 font-heading group-hover:text-primary transition-colors text-white">${edu.degree}</h4>
-            <div class="flex items-center text-primary text-[10px] font-black tracking-widest uppercase mb-4 opacity-80">
-                <span>${edu.institution}</span>
-                <span class="mx-2 opacity-30">•</span>
-                <span>${edu.period}</span>
-            </div>
-            <p class="text-slate-400 text-sm leading-relaxed font-light">${edu.description}</p>
-        </div>
-    `).join('');
-    setContent('education-container', html, true);
+function renderEducation(edu) {
+    const container = document.getElementById('education-container');
+    if (container && edu) container.innerHTML = edu.map(e => `<div class="relative reveal-stagger group pl-8 border-l border-white/5 mb-10"><div class="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]"></div><h4 class="font-black text-xl mb-1">${e.degree}</h4><p class="text-primary text-[10px] uppercase font-bold mb-2">${e.institution} • ${e.period}</p><p class="text-slate-400 text-sm font-light">${e.description}</p></div>`).join('');
 }
 
-function renderExperience(experience) {
-    if (!experience) return;
-    const html = experience.map(exp => `
-        <div class="relative reveal">
-            <div class="absolute -left-[54px] top-1.5 w-3 h-3 rounded-full bg-primary ring-4 ring-primary/20"></div>
-            <h4 class="font-black text-2xl mb-1 font-heading tracking-tight">${exp.role}</h4>
-            <div class="text-secondary text-xs font-bold mb-4 tracking-wide">${exp.company} • ${exp.period}</div>
-            <p class="text-slate-400 leading-relaxed font-light">${exp.description}</p>
-        </div>
-    `).join('');
-    setContent('experience-container', html, true);
+function renderExperience(exp) {
+    const container = document.getElementById('experience-container');
+    if (container && exp) container.innerHTML = exp.map(e => `<div class="relative reveal-stagger mb-12"><h4 class="font-black text-2xl mb-1">${e.role}</h4><p class="text-secondary text-xs font-bold mb-4 uppercase tracking-widest">${e.company} • ${e.period}</p><p class="text-slate-400 font-light leading-relaxed">${e.description}</p></div>`).join('');
 }
 
 function renderSkills(skills) {
-    if (!skills) return;
-    if (skills.timeline) {
-        const timelineHtml = skills.timeline.map((item, index) => `
-            <div class="timeline-item flex-shrink-0 flex flex-col items-center">
-                <div class="timeline-card glass-card p-8 rounded-[2rem] border border-white/5 reveal group hover:border-primary/30 transition-all duration-500">
-                    <div class="flex items-center justify-between mb-6">
-                        <span class="text-4xl font-black text-white/10 group-hover:text-primary/20 transition-colors font-heading leading-none">${item.year}</span>
-                        <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                            <i data-lucide="award"></i>
-                        </div>
-                    </div>
+    const verticalContainer = document.getElementById('skills-vertical-container');
+    const softContainer = document.getElementById('soft-skills-container');
+    
+    if (verticalContainer && skills.timeline) {
+        verticalContainer.innerHTML = skills.timeline.map((item, i) => `
+            <div class="timeline-item reveal-vertical">
+                <div class="timeline-dot-v"></div>
+                <div class="timeline-card-v glass-card p-8 rounded-[2rem] hover:border-primary/30 transition-all duration-500">
+                    <span class="text-4xl font-black opacity-10 block mb-4 font-heading">${item.year}</span>
                     <h4 class="text-xl font-black mb-3 font-heading tracking-tight">${item.title}</h4>
-                    <p class="text-slate-500 text-xs mb-6 font-light leading-relaxed">${item.description}</p>
+                    <p class="text-slate-400 mb-6 font-light leading-relaxed text-sm">${item.description}</p>
                     <div class="flex flex-wrap gap-2">
-                        ${item.skills.map(s => `<span class="px-3 py-1 bg-white/5 text-slate-300 text-[9px] font-bold rounded-full uppercase tracking-widest border border-white/5">${s}</span>`).join('')}
+                        ${item.skills.map(s => `<span class="px-3 py-1 bg-white/5 text-slate-300 text-[9px] font-black rounded-full uppercase tracking-widest border border-white/5">${s}</span>`).join('')}
                     </div>
-                </div>
-                <div class="timeline-dot-container hidden lg:block h-24 relative w-px">
-                    <div class="timeline-dot"></div>
                 </div>
             </div>
         `).join('');
-        setContent('skills-timeline-container', timelineHtml, true);
+
+        // Vertical Reveal Animation
+        gsap.utils.toArray('.reveal-vertical').forEach((item, i) => {
+            gsap.from(item, {
+                scrollTrigger: { trigger: item, start: 'top 85%' },
+                x: 30,
+                opacity: 0,
+                duration: 1,
+                ease: 'power3.out'
+            });
+        });
     }
 
-    if (skills.soft) {
-        const softHtml = skills.soft.map(skill => `
-            <div class="glass-card p-4 rounded-xl flex flex-col items-center text-center group cursor-default border border-white/5 reveal">
-                <div class="w-1.5 h-1.5 rounded-full bg-primary/40 mb-3 group-hover:scale-150 group-hover:bg-primary transition-all"></div>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">${skill.name}</span>
-            </div>
+    if (softContainer && skills.soft) {
+        softContainer.innerHTML = skills.soft.map((s, i) => `
+            <div class="soft-pill" style="
+                animation-delay: ${Math.random() * 2}s; 
+                margin-left: ${i % 2 === 0 ? '0px' : '50px'};
+                margin-right: ${i % 2 !== 0 ? '0px' : '50px'};
+                margin-top: 10px;
+                margin-bottom: 10px;
+            ">${s.name}</div>
         `).join('');
-        setContent('soft-skills-container', softHtml, true);
     }
 }
 
 function renderProjects(projects) {
-    if (!projects) return;
-    const html = projects.map(project => `
-        <div class="glass-card project-card rounded-[2.5rem] overflow-hidden group border border-white/5 reveal">
-            <div class="h-72 overflow-hidden relative">
-                <img src="${project.image}" alt="${project.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000">
-                <div class="absolute inset-0 bg-gradient-to-t from-dark/90 via-dark/20 to-transparent"></div>
-                <div class="absolute bottom-6 left-8 flex flex-wrap gap-2">
-                    ${project.tech.map(t => `<span class="px-3 py-1 bg-white/10 backdrop-blur-md text-white text-[9px] font-black rounded-full uppercase tracking-widest border border-white/10">${t}</span>`).join('')}
+    const container = document.getElementById('projects-container');
+    if (container && projects) {
+        container.innerHTML = projects.map(p => `
+            <div class="project-card-v2 group reveal-stagger">
+                <img src="${p.image}" alt="${p.title}" class="project-image-bg">
+                
+                <div class="project-static-info">
+                    <h3 class="text-3xl font-black font-heading tracking-tighter text-white">${p.title}</h3>
+                    <p class="project-institute">${p.institute || 'Lovely Professional University'}</p>
                 </div>
-            </div>
-            <div class="p-10">
-                <h3 class="text-3xl font-black mb-4 font-heading tracking-tighter group-hover:text-primary transition-colors">${project.title}</h3>
-                <p class="text-slate-400 mb-8 font-light leading-relaxed line-clamp-2">${project.description}</p>
-                <div class="flex items-center space-x-6">
-                    <a href="${project.link}" target="_blank" class="inline-flex items-center text-[10px] font-black tracking-[0.2em] text-white hover:text-primary transition-colors uppercase">
-                        LIVE DEMO <i data-lucide="external-link" class="ml-2 w-4 h-4 text-primary"></i>
-                    </a>
-                    <a href="${project.link}" target="_blank" class="inline-flex items-center text-[10px] font-black tracking-[0.2em] text-slate-500 hover:text-white transition-colors uppercase">
-                        VIEW CODE <i data-lucide="github" class="ml-2 w-4 h-4"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    setContent('projects-container', html, true);
-}
 
-function renderCertificates(certificates) {
-    if (!certificates) return;
-    const html = certificates.map(cert => `
-        <div class="glass-card p-8 rounded-3xl border border-white/5 reveal group relative flex flex-col h-full">
-            <div class="h-48 rounded-2xl overflow-hidden mb-8 relative border border-white/5 bg-slate-900 cursor-pointer" onclick="openLightbox('${cert.image}', '${cert.title}', '${cert.issuer}')">
-                <img src="${cert.image}" alt="${cert.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80 group-hover:opacity-100">
-                <div class="absolute inset-0 bg-gradient-to-t from-dark/60 to-transparent"></div>
-                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div class="w-12 h-12 glass rounded-full flex items-center justify-center text-primary">
-                        <i data-lucide="zoom-in"></i>
+                <div class="project-hover-reveal">
+                    <div class="project-back-content">
+                        <div class="tech-pills">
+                            ${p.tech.map(t => `<span class="tech-pill">${t}</span>`).join('')}
+                        </div>
+                        <p class="text-slate-200 mb-6 font-light text-sm leading-relaxed">${p.description}</p>
+                        <a href="${p.link}" target="_blank" class="w-fit px-6 py-3 bg-primary text-dark text-[10px] font-black tracking-[0.2em] rounded-xl flex items-center transition-all hover:bg-white">
+                            MISSION DETAILS <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
                     </div>
                 </div>
             </div>
-            <h4 class="font-black text-xl mb-2 font-heading tracking-tight group-hover:text-primary transition-colors">${cert.title}</h4>
-            <p class="text-slate-500 text-xs font-bold mb-6">${cert.issuer.toUpperCase()} • ${cert.date}</p>
-            <div class="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
-                <span class="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase flex items-center cursor-pointer hover:text-white transition-colors" onclick="openLightbox('${cert.image}', '${cert.title}', '${cert.issuer}')">
-                    PREVIEW <i data-lucide="maximize-2" class="ml-2 w-3 h-3"></i>
-                </span>
-                ${cert.verifyUrl ? `
-                <a href="${cert.verifyUrl}" target="_blank" class="text-[10px] font-black text-primary hover:text-emerald-400 transition-colors tracking-[0.2em] uppercase flex items-center">
-                    VERIFY LINK <i data-lucide="external-link" class="ml-2 w-3 h-3"></i>
-                </a>` : ''}
+        `).join('');
+    }
+}
+
+function renderCertificates(certs) {
+    const container = document.getElementById('certificates-container');
+    if (container && certs) {
+        container.innerHTML = certs.map(c => `
+            <div class="cert-dossier group reveal-stagger">
+                <div class="cert-img-container">
+                    <img src="${c.image}" alt="${c.title}">
+                </div>
+                
+                <div class="cert-static-info">
+                    <h4 class="font-black text-xl font-heading tracking-tight text-white">${c.title}</h4>
+                    <p class="cert-issuer">${c.issuer}</p>
+                </div>
+
+                <div class="cert-hover-reveal">
+                    <p class="text-slate-400 text-[10px] font-black uppercase mb-4 tracking-[0.2em]">${c.date}</p>
+                    ${c.verifyUrl ? `
+                        <a href="${c.verifyUrl}" target="_blank" class="cert-verify-btn">
+                            VERIFY CREDENTIAL <i class="fas fa-external-link-alt ml-2"></i>
+                        </a>
+                    ` : ''}
+                </div>
             </div>
-        </div>
-    `).join('');
-    setContent('certificates-container', html, true);
-}
-
-function renderContact(contact) {
-    if (!contact) return;
-    setContent('contact-email', contact.email);
-    setContent('contact-location', contact.location);
-}
-
-function renderSocial(social) {
-    if (!social) return;
-    const html = social.map(s => `
-        <a href="${s.url}" class="w-12 h-12 glass-card rounded-2xl flex items-center justify-center text-slate-500 hover:text-primary hover:-translate-y-2 transition-all border border-white/5">
-            <i data-lucide="${s.icon}" class="w-5 h-5"></i>
-        </a>
-    `).join('');
-    setContent('social-links', html, true);
-}
-
-function renderServices(services) {
-    if (!services) return;
-    const html = services.map(service => `
-        <div class="glass-card p-8 rounded-[2rem] border border-white/5 reveal group hover:bg-white/5 transition-all duration-500">
-            <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-6 group-hover:scale-110 group-hover:bg-primary group-hover:text-dark transition-all">
-                <i data-lucide="${service.icon}" class="w-5 h-5"></i>
-            </div>
-            <h4 class="text-lg font-black mb-3 font-heading tracking-tight">${service.title}</h4>
-            <p class="text-slate-500 text-xs font-light leading-relaxed">${service.description}</p>
-        </div>
-    `).join('');
-    setContent('services-container', html, true);
+        `).join('');
+    }
 }
 
 function renderTestimonials(testimonials) {
-    if (!testimonials) return;
-    const list = [...testimonials, ...testimonials];
-    const html = list.map(t => `
-        <div class="glass-card p-10 rounded-[2.5rem] border border-white/5 w-[400px] flex-shrink-0">
-            <div class="flex items-center mb-8">
-                <div class="w-14 h-14 rounded-full overflow-hidden mr-4 border-2 border-primary/20 flex items-center justify-center bg-primary/10 text-primary font-black text-xl">
-                    ${t.avatar.length === 1 ? t.avatar : `<img src="${t.avatar}" alt="${t.name}" class="w-full h-full object-cover">`}
-                </div>
-                <div>
-                    <h5 class="font-black text-white">${t.name}</h5>
-                    <p class="text-primary text-[10px] font-black uppercase tracking-widest">${t.role}</p>
-                </div>
-            </div>
-            <p class="text-slate-400 italic font-light leading-relaxed">"${t.content}"</p>
-        </div>
-    `).join('');
-    setContent('testimonials-container', html, true);
+    const container = document.getElementById('testimonials-container');
+    if (container && testimonials) container.innerHTML = [...testimonials, ...testimonials].map(t => `<div class="glass-card p-10 rounded-[2.5rem] w-[350px] flex-shrink-0 mx-4"><div class="flex items-center mb-6"><div class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black">${t.avatar[0]}</div><div class="ml-4"><h5 class="font-black">${t.name}</h5><p class="text-primary text-[10px] font-black uppercase">${t.role}</p></div></div><p class="text-slate-400 italic text-sm font-light">${t.content}</p></div>`).join('');
+    gsap.to('.animate-scroll-testimonials', { xPercent: -50, repeat: -1, duration: 30, ease: 'none' });
 }
 
-// Contact Modal Logic
-function toggleContactModal() {
-    const modal = document.getElementById('contact-modal');
-    if (modal.classList.contains('hidden')) {
-        modal.classList.remove('hidden');
-        setTimeout(() => modal.classList.add('active'), 10);
-        document.body.style.overflow = 'hidden';
+function renderContact(c) {
+    if (c) { 
+        setContent('contact-email', c.email); 
+        setContent('contact-location', c.location); 
+        // Sync to Hero
+        setContent('hero-email', c.email);
+        setContent('hero-location', c.location);
+    }
+}
+
+function renderServices(services) {
+    const container = document.getElementById('services-container');
+    const serviceIconMap = { 'zap': 'fas fa-bolt', 'code': 'fas fa-code', 'terminal': 'fas fa-terminal', 'layers': 'fas fa-layer-group' };
+    if (container && services) container.innerHTML = services.map(s => `<div class="glass-card p-8 rounded-[2rem] reveal-stagger"><div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-6"><i class="${serviceIconMap[s.icon] || 'fas fa-bolt'}"></i></div><h4 class="text-lg font-black mb-2">${s.title}</h4><p class="text-slate-500 text-xs font-light">${s.description}</p></div>`).join('');
+}
+
+function renderSocial(social) {
+    const container = document.getElementById('social-links');
+    const heroContainer = document.getElementById('hero-socials');
+    const iconMap = { github: "fab fa-github", linkedin: "fab fa-linkedin", twitter: "fab fa-twitter", instagram: "fab fa-instagram" };
+
+    if (social) {
+        const validSocials = social.filter(item => item.url && item.url !== "#");
+        const html = validSocials.map(s => `
+            <a href="${s.url}" target="_blank" class="w-10 h-10 glass-card rounded-xl flex items-center justify-center text-slate-300 hover:text-primary transition-all border border-white/5 text-xl">
+                <i class="${iconMap[s.icon] || 'fas fa-link'}"></i>
+            </a>
+        `).join('');
+        if (container) container.innerHTML = html;
+        if (heroContainer) heroContainer.innerHTML = html;
+    }
+}
+
+function toggleContactModal(e) {
+    if (e) e.stopPropagation();
+    const m = document.getElementById('contact-modal');
+    if (!m) return;
+
+    const isActive = m.classList.toggle('active');
+    
+    if (isActive) {
+        gsap.fromTo('.contact-reveal', 
+            { y: 15, opacity: 0, scale: 0.9 }, 
+            { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.08, ease: 'back.out(1.7)', delay: 0.1 }
+        );
     } else {
-        modal.classList.remove('active');
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }, 400);
+        gsap.to('.contact-reveal', { opacity: 0, y: 10, duration: 0.3, ease: 'power2.in' });
     }
 }
 
-// Lightbox Logic
-function openLightbox(imgSrc, title, issuer) {
-    const modal = document.getElementById('lightbox-modal');
-    const img = document.getElementById('lightbox-img');
-    const titleEl = document.getElementById('lightbox-title');
-    const issuerEl = document.getElementById('lightbox-issuer');
 
-    if (modal && img && titleEl && issuerEl) {
-        img.src = imgSrc;
-        titleEl.textContent = title;
-        issuerEl.textContent = issuer;
-        
-        modal.classList.remove('hidden');
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
+// Global Click-to-Close for Contact Popup
+document.addEventListener('click', (e) => {
+    const m = document.getElementById('contact-modal');
+    const content = m?.querySelector('.modal-content');
+    const fab = document.getElementById('floating-contact');
+    
+    if (m && !m.classList.contains('hidden')) {
+        // If click is outside the content and NOT on the FAB
+        if (content && !content.contains(e.target) && fab && !fab.contains(e.target)) {
+            toggleContactModal();
+        }
     }
+});
+
+
+// --- Scroll to Top Logic ---
+const scrollTopBtn = document.getElementById('scroll-top');
+if (scrollTopBtn) {
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 400) {
+            scrollTopBtn.classList.add('opacity-100', 'scale-100', 'pointer-events-auto');
+            scrollTopBtn.classList.remove('opacity-0', 'scale-0', 'pointer-events-none');
+        } else {
+            scrollTopBtn.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto');
+            scrollTopBtn.classList.add('opacity-0', 'scale-0', 'pointer-events-none');
+        }
+    });
+
+    scrollTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+function openLightbox(s, t) {
+    const m = document.getElementById('lightbox-modal');
+    if (m) { document.getElementById('lightbox-img').src = s; document.getElementById('lightbox-title').textContent = t; m.classList.remove('hidden'); m.classList.add('active'); }
 }
 
 function closeLightbox() {
-    const modal = document.getElementById('lightbox-modal');
-    if (modal) {
-        modal.classList.remove('active');
-        setTimeout(() => modal.classList.add('hidden'), 400);
-        document.body.style.overflow = '';
-    }
+    const m = document.getElementById('lightbox-modal');
+    if (m) { m.classList.remove('active'); setTimeout(() => m.classList.add('hidden'), 400); }
 }
 
-// Mouse Interactions
-document.addEventListener('mousemove', (e) => {
-    // Mouse Glow
-    const glow = document.getElementById('mouse-glow');
-    if (glow) {
-        glow.style.left = e.clientX + 'px';
-        glow.style.top = e.clientY + 'px';
-        glow.style.opacity = '1';
-    }
+// --- 5D Name Typing Style Cycler ---
+async function initNameTypingLoop(name) {
+    const el = document.getElementById('hero-name');
+    if (!el) return;
 
-    // Grid Mask Movement
-    document.documentElement.style.setProperty('--mouse-x', e.clientX + 'px');
-    document.documentElement.style.setProperty('--mouse-y', e.clientY + 'px');
-});
+    const styles = [
+        'name-style-tech',
+        'name-style-bold',
+        'name-style-ghost',
+        'name-style-italic'
+    ];
+    let styleIndex = 0;
 
-document.addEventListener('mouseleave', () => {
-    const glow = document.getElementById('mouse-glow');
-    if (glow) glow.style.opacity = '0';
-});
-
-// Staggered Reveal Logic
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, index) => {
-        if (entry.isIntersecting) {
-            // Staggering effect for peer elements
-            const siblings = Array.from(entry.target.parentElement.children);
-            const delay = siblings.indexOf(entry.target) * 20;
-            
-            setTimeout(() => {
-                entry.target.classList.add('active');
-            }, delay);
+    const type = async (text, speed = 150) => {
+        for (let i = 0; i <= text.length; i++) {
+            el.textContent = text.slice(0, i);
+            await new Promise(r => setTimeout(r, speed));
         }
-    });
-}, observerOptions);
+    };
 
-function refreshReveals() {
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-}
+    const backspace = async (speed = 70) => {
+        const text = el.textContent;
+        for (let i = text.length; i >= 0; i--) {
+            el.textContent = text.slice(0, i);
+            await new Promise(r => setTimeout(r, speed));
+        }
+    };
 
-// Ensure icons are re-processed
-function refreshIcons() {
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+    while (true) {
+        // Apply current style class
+        el.className = `text-6xl md:text-8xl font-black mb-6 font-heading tracking-tighter leading-none text-gradient ${styles[styleIndex]}`;
+        
+        await type(name.toUpperCase(), 150);
+        await new Promise(r => setTimeout(r, 2000)); // Pause at full name
+        await backspace(70);
+        
+        // Cycle style
+        styleIndex = (styleIndex + 1) % styles.length;
+        await new Promise(r => setTimeout(r, 500)); // Pause before next type
     }
 }
+
+// --- 5D Role Typing Animation ---
+async function initRoleTypingLoop(role) {
+    const el = document.getElementById('hero-role');
+    if (!el) return;
+
+    const type = async (text, speed = 100) => {
+        for (let i = 0; i <= text.length; i++) {
+            el.textContent = text.slice(0, i);
+            await new Promise(r => setTimeout(r, speed));
+        }
+    };
+
+    const backspace = async (speed = 50) => {
+        const text = el.textContent;
+        for (let i = text.length; i >= 0; i--) {
+            el.textContent = text.slice(0, i);
+            await new Promise(r => setTimeout(r, speed));
+        }
+    };
+
+    while (true) {
+        await type(role.toUpperCase(), 100);
+        await new Promise(r => setTimeout(r, 3000)); // Visible for 3s
+        await backspace(50);
+        await new Promise(r => setTimeout(r, 1000)); // Pause before restart
+    }
+}
+
+
