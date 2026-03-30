@@ -1,59 +1,263 @@
-// Failsafe Initialization
-document.addEventListener('DOMContentLoaded', async () => {
-    try { await fetchData(); } catch (e) { console.error("Data rendering failed:", e); }
-    try { initThreeJS(); } catch (e) { console.warn("Three.js failed."); }
-    try { initLenis(); } catch (e) { console.warn("Lenis failed."); }
+// ============================================
+// PORTFOLIO — Performance-Optimized + Liquid Glass
+// ============================================
+
+// Wait for all deferred scripts to load, then init
+window.addEventListener('load', async () => {
+    // Run intro animation immediately
+    runIntroSequence();
+
+    try {
+        await fetchData();
+    } catch (e) {
+        console.error("Data rendering failed:", e);
+    }
+
+    // Defer heavy inits using requestIdleCallback (or fallback)
+    const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 100));
+
+    idle(() => {
+        try { initThreeJS(); } catch (e) { console.warn("Three.js failed:", e); }
+    });
+    idle(() => {
+        try { initLenis(); } catch (e) { console.warn("Lenis failed:", e); }
+    });
+    idle(() => {
+        initScrollProgress();
+        initMagneticTilt();
+        initMouseGlow();
+    });
 });
 
+// ============================================
+// INTRO SEQUENCE — Cinematic Name Reveal
+// ============================================
+async function runIntroSequence() {
+    const screen = document.getElementById('intro-screen');
+    if (!screen) return;
+
+    const letters = screen.querySelectorAll('.intro-letter');
+    const lineAccent = screen.querySelector('.intro-line-accent');
+    const subtitleText = screen.querySelector('.intro-subtitle-text');
+    const tagline = screen.querySelector('.intro-tagline');
+
+    // Wait a beat before starting
+    await sleep(400);
+
+    // Phase 1: Reveal letters one by one with glitch flash
+    for (let i = 0; i < letters.length; i++) {
+        const letter = letters[i];
+        letter.classList.add('flash');
+        await sleep(80);
+        letter.classList.remove('flash');
+        letter.classList.add('revealed');
+        await sleep(120);
+    }
+
+    await sleep(300);
+
+    // Phase 2: Expand accent line + typewriter subtitle
+    if (lineAccent) lineAccent.classList.add('expanded');
+    await sleep(400);
+
+    const subtitle = "Full Stack Developer";
+    if (subtitleText) {
+        for (let i = 0; i <= subtitle.length; i++) {
+            subtitleText.textContent = subtitle.slice(0, i);
+            await sleep(45);
+        }
+    }
+
+    await sleep(300);
+
+    // Phase 3: Tagline fade in
+    if (tagline) tagline.classList.add('visible');
+
+    await sleep(1200);
+
+    // Phase 4: Exit — zoom + blur out
+    screen.classList.add('exit');
+
+    await sleep(1000);
+    screen.classList.add('hidden');
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ============================================
+// SMOOTH SCROLL — Lenis
+// ============================================
 function initLenis() {
     if (typeof Lenis === 'undefined') return;
-    lenis = new Lenis({ duration: 1.5, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true });
-    function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+    const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true
+    });
+
+    function raf(time) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+    }
     requestAnimationFrame(raf);
+
     if (typeof ScrollTrigger !== 'undefined' && typeof gsap !== 'undefined') {
         lenis.on('scroll', ScrollTrigger.update);
         gsap.ticker.add((time) => lenis.raf(time * 1000));
     }
 }
 
+// ============================================
+// THREE.JS — Optimized Particles (2000 count)
+// ============================================
+let threeAnimId;
+
 function initThreeJS() {
     if (typeof THREE === 'undefined') return;
     const canvas = document.getElementById('three-canvas');
     if (!canvas) return;
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 1;
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    const count = 6000;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+    // Reduced particle count for performance
+    const count = 2000;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(count * 3);
     const velocities = new Float32Array(count);
+
     for (let i = 0; i < count * 3; i++) positions[i] = (Math.random() - 0.5) * 10;
-    for (let i = 0; i < count; i++) velocities[i] = Math.random() * 0.02 + 0.01;
+    for (let i = 0; i < count; i++) velocities[i] = Math.random() * 0.015 + 0.005;
+
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const material = new THREE.PointsMaterial({ size: 0.005, color: '#10b981', transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
-    particles = new THREE.Points(geometry, material);
+
+    const material = new THREE.PointsMaterial({
+        size: 0.006,
+        color: '#10b981',
+        transparent: true,
+        opacity: 0.5,
+        blending: THREE.AdditiveBlending
+    });
+
+    const particles = new THREE.Points(geometry, material);
     scene.add(particles);
+
+    let isVisible = true;
+
+    // Pause animation when tab is hidden
+    document.addEventListener('visibilitychange', () => {
+        isVisible = !document.hidden;
+    });
+
     function animate() {
-        requestAnimationFrame(animate);
+        threeAnimId = requestAnimationFrame(animate);
+        if (!isVisible) return;
+
         const pos = particles.geometry.attributes.position.array;
         for (let i = 0; i < count; i++) {
-            pos[i * 3 + 2] += velocities[i] * 5;
+            pos[i * 3 + 2] += velocities[i] * 4;
             if (pos[i * 3 + 2] > 2) pos[i * 3 + 2] = -8;
         }
         particles.geometry.attributes.position.needsUpdate = true;
         renderer.render(scene, camera);
     }
     animate();
+
+    // Debounced resize
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }, 200);
     });
 }
 
+// ============================================
+// SCROLL PROGRESS BAR
+// ============================================
+function initScrollProgress() {
+    const bar = document.getElementById('scroll-progress');
+    if (!bar) return;
+
+    window.addEventListener('scroll', () => {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        bar.style.width = progress + '%';
+    }, { passive: true });
+}
+
+// ============================================
+// MOUSE GLOW FOLLOWING
+// ============================================
+function initMouseGlow() {
+    const glow = document.getElementById('mouse-glow');
+    if (!glow) return;
+
+    let mouseX = 0, mouseY = 0;
+    let glowX = 0, glowY = 0;
+    let active = false;
+
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        if (!active) {
+            active = true;
+            glow.style.opacity = '1';
+        }
+    }, { passive: true });
+
+    function updateGlow() {
+        glowX += (mouseX - glowX) * 0.08;
+        glowY += (mouseY - glowY) * 0.08;
+        glow.style.left = glowX + 'px';
+        glow.style.top = glowY + 'px';
+        requestAnimationFrame(updateGlow);
+    }
+    requestAnimationFrame(updateGlow);
+}
+
+// ============================================
+// MAGNETIC TILT ON CARDS
+// ============================================
+function initMagneticTilt() {
+    const cards = document.querySelectorAll('.glass-card, .project-card-v2, .cert-dossier');
+    cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = (y - centerY) / centerY * -3;
+            const rotateY = (x - centerX) / centerX * 3;
+
+            card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+
+            // Update inner glow position for glass-card::after
+            card.style.setProperty('--mouse-x', (x / rect.width * 100) + '%');
+            card.style.setProperty('--mouse-y', (y / rect.height * 100) + '%');
+        }, { passive: true });
+
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = '';
+        });
+    });
+}
+
+// ============================================
+// SKILL ORBIT
+// ============================================
 let skillOrbitTimeline;
 
 function renderOrbitingSkills(skills) {
@@ -71,7 +275,6 @@ function renderOrbitingSkills(skills) {
         }
         currentStartIndex = (currentStartIndex + batchSize) % uniqueSkills.length;
 
-        // Clear and render new batch
         const radius = window.innerWidth > 768 ? 200 : 150;
         const html = batch.map((skill, i) => {
             const angle = (i / batchSize) * Math.PI * 2;
@@ -80,65 +283,75 @@ function renderOrbitingSkills(skills) {
             return `<div class="skill-circle opacity-0" style="left: calc(50% + ${x}px); top: calc(50% + ${y}px); transform: translate(-50%, -50%) scale(0.5);">${skill}</div>`;
         }).join('');
 
-        // GSAP Transition
+        if (typeof gsap === 'undefined') {
+            container.innerHTML = html;
+            return;
+        }
+
         gsap.to(container.children, {
             opacity: 0,
             scale: 0,
-            duration: 1,
-            stagger: 0.1,
+            duration: 0.8,
+            stagger: 0.05,
             onComplete: () => {
                 container.innerHTML = html;
                 gsap.to(container.children, {
                     opacity: 1,
                     scale: 1,
-                    duration: 1.5,
-                    stagger: 0.1,
+                    duration: 1.2,
+                    stagger: 0.08,
                     ease: 'elastic.out(1, 0.5)'
                 });
             }
         });
     }
 
-    // Initial show
     showBatch();
-    
-    // Continuous rotation of the container (Counter-rotation for readability)
-    if (skillOrbitTimeline) skillOrbitTimeline.kill();
-    skillOrbitTimeline = gsap.to(container, {
-        rotation: 360,
-        duration: 50, // Much slower
-        repeat: -1,
-        ease: 'none',
-        onUpdate: function() {
-            const currentRotation = gsap.getProperty(container, "rotation");
-            // Counter-rotate all active skill circles
-            gsap.set(container.children, { rotation: -currentRotation });
-        }
-    });
 
-    // Cycle batches every 10 seconds for more reading time
+    if (typeof gsap !== 'undefined') {
+        if (skillOrbitTimeline) skillOrbitTimeline.kill();
+        skillOrbitTimeline = gsap.to(container, {
+            rotation: 360,
+            duration: 50,
+            repeat: -1,
+            ease: 'none',
+            onUpdate: function () {
+                const currentRotation = gsap.getProperty(container, "rotation");
+                gsap.set(container.children, { rotation: -currentRotation });
+            }
+        });
+    }
+
     setInterval(showBatch, 7000);
 }
 
+// ============================================
+// GSAP ANIMATIONS — Intersection Observer Powered
+// ============================================
 function initGSAPAnimations() {
     if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
     gsap.registerPlugin(ScrollTrigger);
-    
-    // Hero Entrance Sequence
-    const tl = gsap.timeline();
-    tl.to('#hero-content', { opacity: 1, y: 0, duration: 1.5, ease: 'power4.out' })
-      .to('#hero-contact-block', { opacity: 1, y: 0, duration: 1.2, ease: 'power4.out' }, '-=0.8');
 
+    // Hero entrance
+    const tl = gsap.timeline();
+    tl.to('#hero-content', { opacity: 1, y: 0, duration: 1.2, ease: 'power4.out' })
+      .to('#hero-contact-block', { opacity: 1, y: 0, duration: 1, ease: 'power4.out' }, '-=0.6');
+
+    // Scroll-triggered reveals with stagger
     document.querySelectorAll('section').forEach(section => {
         const reveals = section.querySelectorAll('.reveal-stagger');
         if (reveals.length > 0) {
-            gsap.to(Array.from(reveals), { 
-                scrollTrigger: { trigger: section, start: 'top 85%' }, 
-                y: 0, 
-                opacity: 1, 
-                duration: 1, 
-                stagger: 0.1, 
-                ease: 'power3.out' 
+            gsap.to(Array.from(reveals), {
+                scrollTrigger: {
+                    trigger: section,
+                    start: 'top 85%',
+                    once: true // only trigger once for performance
+                },
+                y: 0,
+                opacity: 1,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'power3.out'
             });
         }
     });
@@ -152,15 +365,18 @@ function initInteractivity() {
     });
 }
 
+// ============================================
+// DATA FETCH & RENDER
+// ============================================
 async function fetchData() {
     try {
         const response = await fetch('data.json');
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        
-        // Expose to window for generic access if needed
+
         window.portfolioData = data;
 
+        // Batch all renders
         renderPersonal(data.personal);
         renderEducation(data.education);
         renderExperience(data.experience);
@@ -171,7 +387,7 @@ async function fetchData() {
         renderTestimonials(data.testimonials);
         renderContact(data.contact);
         renderSocial(data.personal.social);
-        
+
         // Collect ALL skills for orbit
         let allSkills = [];
         if (data.skills.timeline) {
@@ -182,12 +398,18 @@ async function fetchData() {
         }
         renderOrbitingSkills(allSkills);
 
-        initInteractivity();
-        initGSAPAnimations();
+        // Init animations after DOM is populated
+        requestAnimationFrame(() => {
+            initInteractivity();
+            initGSAPAnimations();
+            // Re-init magnetic tilt for dynamically created cards
+            initMagneticTilt();
+        });
+
         initNameTypingLoop(data.personal.name);
         initRoleTypingLoop(data.personal.role);
     } catch (error) {
-        console.error("Failed to fetch database data:", error);
+        console.error("Failed to fetch data:", error);
     }
 }
 
@@ -228,9 +450,9 @@ function renderExperience(exp) {
 function renderSkills(skills) {
     const verticalContainer = document.getElementById('skills-vertical-container');
     const softContainer = document.getElementById('soft-skills-container');
-    
+
     if (verticalContainer && skills.timeline) {
-        verticalContainer.innerHTML = skills.timeline.map((item, i) => `
+        verticalContainer.innerHTML = skills.timeline.map((item) => `
             <div class="timeline-item reveal-vertical">
                 <div class="timeline-dot-v"></div>
                 <div class="timeline-card-v glass-card p-8 rounded-[2rem] hover:border-primary/30 transition-all duration-500">
@@ -244,16 +466,17 @@ function renderSkills(skills) {
             </div>
         `).join('');
 
-        // Vertical Reveal Animation
-        gsap.utils.toArray('.reveal-vertical').forEach((item, i) => {
-            gsap.from(item, {
-                scrollTrigger: { trigger: item, start: 'top 85%' },
-                x: 30,
-                opacity: 0,
-                duration: 1,
-                ease: 'power3.out'
+        if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+            gsap.utils.toArray('.reveal-vertical').forEach((item) => {
+                gsap.from(item, {
+                    scrollTrigger: { trigger: item, start: 'top 85%', once: true },
+                    x: 30,
+                    opacity: 0,
+                    duration: 0.8,
+                    ease: 'power3.out'
+                });
             });
-        });
+        }
     }
 
     if (softContainer && skills.soft) {
@@ -273,8 +496,8 @@ function renderProjects(projects) {
     const container = document.getElementById('projects-container');
     if (container && projects) {
         container.innerHTML = projects.map(p => `
-            <div class="project-card-v2 group reveal-stagger">
-                <img src="${p.image}" alt="${p.title}" class="project-image-bg">
+            <div class="project-card-v2 group reveal-stagger magnetic-tilt">
+                <img src="${p.image}" alt="${p.title}" class="project-image-bg" loading="lazy">
                 
                 <div class="project-static-info">
                     <h3 class="text-3xl font-black font-heading tracking-tighter text-white">${p.title}</h3>
@@ -301,9 +524,9 @@ function renderCertificates(certs) {
     const container = document.getElementById('certificates-container');
     if (container && certs) {
         container.innerHTML = certs.map(c => `
-            <div class="cert-dossier group reveal-stagger">
+            <div class="cert-dossier group reveal-stagger magnetic-tilt">
                 <div class="cert-img-container">
-                    <img src="${c.image}" alt="${c.title}">
+                    <img src="${c.image}" alt="${c.title}" loading="lazy">
                 </div>
                 
                 <div class="cert-static-info">
@@ -326,15 +549,35 @@ function renderCertificates(certs) {
 
 function renderTestimonials(testimonials) {
     const container = document.getElementById('testimonials-container');
-    if (container && testimonials) container.innerHTML = [...testimonials, ...testimonials].map(t => `<div class="glass-card p-10 rounded-[2.5rem] w-[350px] flex-shrink-0 mx-4"><div class="flex items-center mb-6"><div class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black">${t.avatar[0]}</div><div class="ml-4"><h5 class="font-black">${t.name}</h5><p class="text-primary text-[10px] font-black uppercase">${t.role}</p></div></div><p class="text-slate-400 italic text-sm font-light">${t.content}</p></div>`).join('');
-    gsap.to('.animate-scroll-testimonials', { xPercent: -50, repeat: -1, duration: 30, ease: 'none' });
+    if (container && testimonials) {
+        container.innerHTML = [...testimonials, ...testimonials].map(t => `
+            <div class="testimonial-card">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-lg">${t.avatar[0]}</div>
+                    <div class="ml-4">
+                        <h5 class="font-black">${t.name}</h5>
+                        <p class="text-primary text-[10px] font-black uppercase">${t.role}</p>
+                    </div>
+                </div>
+                <p class="text-slate-400 italic text-sm font-light leading-relaxed">${t.content}</p>
+            </div>
+        `).join('');
+
+        if (typeof gsap !== 'undefined') {
+            gsap.to('.animate-scroll-testimonials', {
+                xPercent: -50,
+                repeat: -1,
+                duration: 30,
+                ease: 'none'
+            });
+        }
+    }
 }
 
 function renderContact(c) {
-    if (c) { 
-        setContent('contact-email', c.email); 
-        setContent('contact-location', c.location); 
-        // Sync to Hero
+    if (c) {
+        setContent('contact-email', c.email);
+        setContent('contact-location', c.location);
         setContent('hero-email', c.email);
         setContent('hero-location', c.location);
     }
@@ -342,14 +585,30 @@ function renderContact(c) {
 
 function renderServices(services) {
     const container = document.getElementById('services-container');
-    const serviceIconMap = { 'zap': 'fas fa-bolt', 'code': 'fas fa-code', 'terminal': 'fas fa-terminal', 'layers': 'fas fa-layer-group' };
-    if (container && services) container.innerHTML = services.map(s => `<div class="glass-card p-8 rounded-[2rem] reveal-stagger"><div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-6"><i class="${serviceIconMap[s.icon] || 'fas fa-bolt'}"></i></div><h4 class="text-lg font-black mb-2">${s.title}</h4><p class="text-slate-500 text-xs font-light">${s.description}</p></div>`).join('');
+    const serviceIconMap = {
+        'zap': 'fas fa-bolt', 'code': 'fas fa-code',
+        'terminal': 'fas fa-terminal', 'layers': 'fas fa-layer-group',
+        'palette': 'fas fa-palette', 'link': 'fas fa-link',
+        'shield-check': 'fas fa-shield-alt'
+    };
+    if (container && services) container.innerHTML = services.map(s => `
+        <div class="glass-card p-8 rounded-[2rem] reveal-stagger magnetic-tilt">
+            <div class="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-6">
+                <i class="${serviceIconMap[s.icon] || 'fas fa-bolt'}"></i>
+            </div>
+            <h4 class="text-lg font-black mb-2">${s.title}</h4>
+            <p class="text-slate-500 text-xs font-light">${s.description}</p>
+        </div>
+    `).join('');
 }
 
 function renderSocial(social) {
-    const container = document.getElementById('social-links');
     const heroContainer = document.getElementById('hero-socials');
-    const iconMap = { github: "fab fa-github", linkedin: "fab fa-linkedin", twitter: "fab fa-twitter", instagram: "fab fa-instagram" };
+    const footerContainer = document.getElementById('footer-socials');
+    const iconMap = {
+        github: "fab fa-github", linkedin: "fab fa-linkedin",
+        twitter: "fab fa-twitter", instagram: "fab fa-instagram"
+    };
 
     if (social) {
         const validSocials = social.filter(item => item.url && item.url !== "#");
@@ -358,45 +617,50 @@ function renderSocial(social) {
                 <i class="${iconMap[s.icon] || 'fas fa-link'}"></i>
             </a>
         `).join('');
-        if (container) container.innerHTML = html;
+
         if (heroContainer) heroContainer.innerHTML = html;
+        if (footerContainer) footerContainer.innerHTML = html;
     }
 }
 
+// ============================================
+// CONTACT MODAL
+// ============================================
 function toggleContactModal(e) {
     if (e) e.stopPropagation();
     const m = document.getElementById('contact-modal');
     if (!m) return;
 
     const isActive = m.classList.toggle('active');
-    
-    if (isActive) {
-        gsap.fromTo('.contact-reveal', 
-            { y: 15, opacity: 0, scale: 0.9 }, 
-            { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.08, ease: 'back.out(1.7)', delay: 0.1 }
-        );
-    } else {
-        gsap.to('.contact-reveal', { opacity: 0, y: 10, duration: 0.3, ease: 'power2.in' });
+
+    if (typeof gsap !== 'undefined') {
+        if (isActive) {
+            gsap.fromTo('.contact-reveal',
+                { y: 15, opacity: 0, scale: 0.9 },
+                { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.08, ease: 'back.out(1.7)', delay: 0.1 }
+            );
+        } else {
+            gsap.to('.contact-reveal', { opacity: 0, y: 10, duration: 0.3, ease: 'power2.in' });
+        }
     }
 }
-
 
 // Global Click-to-Close for Contact Popup
 document.addEventListener('click', (e) => {
     const m = document.getElementById('contact-modal');
     const content = m?.querySelector('.modal-content');
     const fab = document.getElementById('floating-contact');
-    
-    if (m && !m.classList.contains('hidden')) {
-        // If click is outside the content and NOT on the FAB
+
+    if (m && m.classList.contains('active')) {
         if (content && !content.contains(e.target) && fab && !fab.contains(e.target)) {
             toggleContactModal();
         }
     }
 });
 
-
-// --- Scroll to Top Logic ---
+// ============================================
+// SCROLL TO TOP
+// ============================================
 const scrollTopBtn = document.getElementById('scroll-top');
 if (scrollTopBtn) {
     window.addEventListener('scroll', () => {
@@ -407,24 +671,37 @@ if (scrollTopBtn) {
             scrollTopBtn.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto');
             scrollTopBtn.classList.add('opacity-0', 'scale-0', 'pointer-events-none');
         }
-    });
+    }, { passive: true });
 
     scrollTopBtn.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 }
 
+// ============================================
+// LIGHTBOX
+// ============================================
 function openLightbox(s, t) {
     const m = document.getElementById('lightbox-modal');
-    if (m) { document.getElementById('lightbox-img').src = s; document.getElementById('lightbox-title').textContent = t; m.classList.remove('hidden'); m.classList.add('active'); }
+    if (m) {
+        document.getElementById('lightbox-img').src = s;
+        document.getElementById('lightbox-title').textContent = t;
+        m.classList.remove('hidden');
+        m.classList.add('active');
+    }
 }
 
 function closeLightbox() {
     const m = document.getElementById('lightbox-modal');
-    if (m) { m.classList.remove('active'); setTimeout(() => m.classList.add('hidden'), 400); }
+    if (m) {
+        m.classList.remove('active');
+        setTimeout(() => m.classList.add('hidden'), 400);
+    }
 }
 
-// --- 5D Name Typing Style Cycler ---
+// ============================================
+// NAME TYPING LOOP
+// ============================================
 async function initNameTypingLoop(name) {
     const el = document.getElementById('hero-name');
     if (!el) return;
@@ -437,41 +714,7 @@ async function initNameTypingLoop(name) {
     ];
     let styleIndex = 0;
 
-    const type = async (text, speed = 150) => {
-        for (let i = 0; i <= text.length; i++) {
-            el.textContent = text.slice(0, i);
-            await new Promise(r => setTimeout(r, speed));
-        }
-    };
-
-    const backspace = async (speed = 70) => {
-        const text = el.textContent;
-        for (let i = text.length; i >= 0; i--) {
-            el.textContent = text.slice(0, i);
-            await new Promise(r => setTimeout(r, speed));
-        }
-    };
-
-    while (true) {
-        // Apply current style class
-        el.className = `text-6xl md:text-8xl font-black mb-6 font-heading tracking-tighter leading-none text-gradient ${styles[styleIndex]}`;
-        
-        await type(name.toUpperCase(), 150);
-        await new Promise(r => setTimeout(r, 2000)); // Pause at full name
-        await backspace(70);
-        
-        // Cycle style
-        styleIndex = (styleIndex + 1) % styles.length;
-        await new Promise(r => setTimeout(r, 500)); // Pause before next type
-    }
-}
-
-// --- 5D Role Typing Animation ---
-async function initRoleTypingLoop(role) {
-    const el = document.getElementById('hero-role');
-    if (!el) return;
-
-    const type = async (text, speed = 100) => {
+    const type = async (text, speed = 120) => {
         for (let i = 0; i <= text.length; i++) {
             el.textContent = text.slice(0, i);
             await new Promise(r => setTimeout(r, speed));
@@ -487,11 +730,41 @@ async function initRoleTypingLoop(role) {
     };
 
     while (true) {
-        await type(role.toUpperCase(), 100);
-        await new Promise(r => setTimeout(r, 3000)); // Visible for 3s
+        el.className = `text-6xl md:text-8xl font-black mb-6 font-heading tracking-tighter leading-none text-gradient ${styles[styleIndex]}`;
+        await type(name.toUpperCase(), 120);
+        await new Promise(r => setTimeout(r, 2000));
         await backspace(50);
-        await new Promise(r => setTimeout(r, 1000)); // Pause before restart
+        styleIndex = (styleIndex + 1) % styles.length;
+        await new Promise(r => setTimeout(r, 400));
     }
 }
 
+// ============================================
+// ROLE TYPING LOOP
+// ============================================
+async function initRoleTypingLoop(role) {
+    const el = document.getElementById('hero-role');
+    if (!el) return;
 
+    const type = async (text, speed = 80) => {
+        for (let i = 0; i <= text.length; i++) {
+            el.textContent = text.slice(0, i);
+            await new Promise(r => setTimeout(r, speed));
+        }
+    };
+
+    const backspace = async (speed = 40) => {
+        const text = el.textContent;
+        for (let i = text.length; i >= 0; i--) {
+            el.textContent = text.slice(0, i);
+            await new Promise(r => setTimeout(r, speed));
+        }
+    };
+
+    while (true) {
+        await type(role.toUpperCase(), 80);
+        await new Promise(r => setTimeout(r, 3000));
+        await backspace(40);
+        await new Promise(r => setTimeout(r, 800));
+    }
+}
