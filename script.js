@@ -60,7 +60,7 @@ async function runIntroSequence() {
     if (lineAccent) lineAccent.classList.add('expanded');
     await sleep(400);
 
-    const subtitle = "Full Stack Developer";
+    const subtitle = "Full Stack Web Developer";
     if (subtitleText) {
         for (let i = 0; i <= subtitle.length; i++) {
             subtitleText.textContent = subtitle.slice(0, i);
@@ -110,90 +110,62 @@ function initLenis() {
 }
 
 // ============================================
-// THREE.JS — Optimized Particles (2000 count)
+// THREE.JS — Web Worker Multithreaded
 // ============================================
-let threeAnimId;
-
 function initThreeJS() {
-    if (typeof THREE === 'undefined') return;
     const canvas = document.getElementById('three-canvas');
-    if (!canvas) return;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 1;
-
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-
-    // Reduced particle count for performance
-    const count = 2000;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(count * 3);
-    const velocities = new Float32Array(count);
-
-    for (let i = 0; i < count * 3; i++) positions[i] = (Math.random() - 0.5) * 10;
-    for (let i = 0; i < count; i++) velocities[i] = Math.random() * 0.015 + 0.005;
-
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-    const material = new THREE.PointsMaterial({
-        size: 0.006,
-        color: '#10b981',
-        transparent: true,
-        opacity: 0.5,
-        blending: THREE.AdditiveBlending
-    });
-
-    const particles = new THREE.Points(geometry, material);
-    scene.add(particles);
-
-    let isVisible = true;
-
-    // Pause animation when tab is hidden
+    if (!canvas || !('transferControlToOffscreen' in canvas)) return;
+    
+    const offscreen = canvas.transferControlToOffscreen();
+    const worker = new Worker('three-worker.js');
+    
+    worker.postMessage({
+        type: 'init',
+        canvas: offscreen,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        pixelRatio: window.devicePixelRatio
+    }, [offscreen]);
+    
     document.addEventListener('visibilitychange', () => {
-        isVisible = !document.hidden;
+        worker.postMessage({ type: 'visibility', isVisible: !document.hidden });
     });
-
-    function animate() {
-        threeAnimId = requestAnimationFrame(animate);
-        if (!isVisible) return;
-
-        const pos = particles.geometry.attributes.position.array;
-        for (let i = 0; i < count; i++) {
-            pos[i * 3 + 2] += velocities[i] * 4;
-            if (pos[i * 3 + 2] > 2) pos[i * 3 + 2] = -8;
-        }
-        particles.geometry.attributes.position.needsUpdate = true;
-        renderer.render(scene, camera);
-    }
-    animate();
-
-    // Debounced resize
+    
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            worker.postMessage({
+                type: 'resize',
+                width: window.innerWidth,
+                height: window.innerHeight,
+                pixelRatio: window.devicePixelRatio
+            });
         }, 200);
     });
 }
 
 // ============================================
-// SCROLL PROGRESS BAR
+// SCROLL PROGRESS BAR - Compositor Optimized
 // ============================================
 function initScrollProgress() {
     const bar = document.getElementById('scroll-progress');
     if (!bar) return;
+    
+    bar.style.transformOrigin = '0% 50%';
+    let ticking = false;
 
     window.addEventListener('scroll', () => {
-        const scrollTop = window.scrollY;
-        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-        bar.style.width = progress + '%';
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                const scrollTop = window.scrollY;
+                const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const progress = docHeight > 0 ? (scrollTop / docHeight) : 0;
+                bar.style.transform = `scaleX(${progress})`;
+                ticking = false;
+            });
+            ticking = true;
+        }
     }, { passive: true });
 }
 
@@ -228,30 +200,48 @@ function initMouseGlow() {
 }
 
 // ============================================
-// MAGNETIC TILT ON CARDS
+// MAGNETIC TILT ON CARDS - O(1) Memory Caching
 // ============================================
 function initMagneticTilt() {
     const cards = document.querySelectorAll('.glass-card:not(.lc-card-static), .project-card-v2, .cert-dossier');
     cards.forEach(card => {
+        let rect = null;
+        let ticking = false;
+        let targetX = 0, targetY = 0;
+        let centerX = 0, centerY = 0;
+
+        card.addEventListener('mouseenter', () => {
+            rect = card.getBoundingClientRect();
+            centerX = rect.width / 2;
+            centerY = rect.height / 2;
+        });
+
         card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const rotateX = (y - centerY) / centerY * -3;
-            const rotateY = (x - centerX) / centerX * 3;
+            if (!rect) return;
+            targetX = e.clientX - rect.left;
+            targetY = e.clientY - rect.top;
 
-            card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
-
-            // Update inner glow position for glass-card::after
-            card.style.setProperty('--mouse-x', (x / rect.width * 100) + '%');
-            card.style.setProperty('--mouse-y', (y / rect.height * 100) + '%');
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const rotateX = (targetY - centerY) / centerY * -3;
+                    const rotateY = (targetX - centerX) / centerX * 3;
+                    card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+                    card.style.setProperty('--mouse-x', (targetX / rect.width * 100) + '%');
+                    card.style.setProperty('--mouse-y', (targetY / rect.height * 100) + '%');
+                    ticking = false;
+                });
+                ticking = true;
+            }
         }, { passive: true });
 
         card.addEventListener('mouseleave', () => {
-            card.style.transform = '';
+            rect = null;
+            window.requestAnimationFrame(() => {
+                card.style.transform = '';
+            });
         });
+        
+        window.addEventListener('scroll', () => { if (rect) rect = card.getBoundingClientRect(); }, { passive: true });
     });
 }
 
@@ -605,13 +595,14 @@ function renderPersonal(personal) {
     const heroActions = document.getElementById('hero-actions');
     if (heroActions && personal.cvUrl) {
         heroActions.innerHTML = `
-            <a href="${personal.cvUrl}" target="_blank" class="px-8 py-5 btn-primary text-dark font-black rounded-2xl flex items-center justify-center shadow-lg">
+            <button onclick="downloadCV()" class="px-8 py-5 btn-primary text-dark font-black rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-105">
                 DOWNLOAD CV <i class="fas fa-download ml-2 text-sm"></i>
-            </a>
-            <a href="${personal.cvUrl}" target="_blank" class="px-8 py-5 glass-card text-white font-black rounded-2xl flex items-center justify-center border border-white/10 hover:border-primary/50 transition-all font-heading">
+            </button>
+            <button onclick="openCVModal('${personal.cvUrl}')" class="px-8 py-5 glass-card text-white font-black rounded-2xl flex items-center justify-center border border-white/10 hover:border-primary/50 transition-all font-heading hover:scale-105 cursor-pointer">
                 VIEW FULL CV <i class="fas fa-eye ml-2 text-sm"></i>
-            </a>
+            </button>
         `;
+        window.currentCVUrl = personal.cvUrl;
     }
 }
 
@@ -945,4 +936,75 @@ async function initRoleTypingLoop(role) {
         await backspace(40);
         await new Promise(r => setTimeout(r, 800));
     }
+}
+
+// ============================================
+// CV MODAL LOGIC
+// ============================================
+function openCVModal(url) {
+    const modal = document.getElementById('cv-modal');
+    const content = document.getElementById('cv-modal-content');
+    const iframe = document.getElementById('cv-iframe');
+    
+    if (modal && iframe) {
+        iframe.src = url;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        // Trigger reflow to ensure transition works
+        void modal.offsetWidth;
+        
+        modal.classList.remove('opacity-0');
+        if (content) content.classList.remove('scale-95');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeCVModal() {
+    const modal = document.getElementById('cv-modal');
+    const content = document.getElementById('cv-modal-content');
+    const iframe = document.getElementById('cv-iframe');
+    
+    if (modal) {
+        modal.classList.add('opacity-0');
+        if (content) content.classList.add('scale-95');
+        document.body.style.overflow = '';
+        setTimeout(() => { 
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if (iframe) iframe.src = ''; 
+        }, 500); // Wait for transition
+    }
+}
+
+function downloadCV() {
+    if (!window.currentCVUrl) return;
+    const a = document.createElement('a');
+    a.href = window.currentCVUrl;
+    a.download = window.currentCVUrl.split('/').pop() || 'Resume.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function printCV() {
+    const iframe = document.getElementById('cv-iframe');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.focus();
+        try {
+            iframe.contentWindow.print();
+        } catch (e) {
+            console.warn("Direct iframe print restricted, falling back.", e);
+            const w = window.open(window.currentCVUrl);
+            if(w) w.onload = () => { w.print(); };
+        }
+    }
+}
+
+function shareCV() {
+    if (!window.currentCVUrl) return;
+    const absoluteUrl = new URL(window.currentCVUrl, window.location.origin).href;
+    navigator.clipboard.writeText(absoluteUrl).then(() => {
+        alert("CV Link copied to clipboard!");
+    }).catch(err => console.error("Failed to copy", err));
 }
