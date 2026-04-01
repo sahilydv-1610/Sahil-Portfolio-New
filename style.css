@@ -408,6 +408,23 @@ h1, h2, h3, h4, .font-heading {
     0 0 80px -20px rgba(var(--primary-rgb), 0.1);
 }
 
+.glass-card.lc-card-static:hover {
+  border-color: var(--glass-border);
+  background: var(--glass-bg);
+  transform: none;
+  box-shadow:
+    var(--glass-inner-glow),
+    0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card.lc-card-static:hover::before {
+  transform: none;
+}
+
+.glass-card.lc-card-static:hover::after {
+  opacity: 0;
+}
+
 /* ============================================
    TYPOGRAPHY
    ============================================ */
@@ -1086,6 +1103,70 @@ h1, h2, h3, h4, .font-heading {
 }
 
 /* ============================================
+   LEETCODE DASHBOARD
+   ============================================ */
+
+.lc-heatmap-wrapper {
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 1%, black 99%, black);
+}
+
+.lc-heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  transition: all 0.3s var(--smooth);
+  position: relative;
+  cursor: crosshair;
+}
+
+.lc-heatmap-cell:hover {
+  z-index: 10;
+  box-shadow: 0 0 10px rgba(var(--primary-rgb), 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Tooltip on hover */
+.lc-heatmap-cell::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 150%;
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  background: rgba(8, 8, 8, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s var(--smooth);
+  z-index: 20;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.lc-heatmap-cell:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.lc-heatmap-cell-0 { background-color: #1a1a1a; }
+.lc-heatmap-cell-1 { background-color: rgba(var(--primary-rgb), 0.2); }
+.lc-heatmap-cell-2 { background-color: rgba(var(--primary-rgb), 0.4); }
+.lc-heatmap-cell-3 { background-color: rgba(var(--primary-rgb), 0.7); }
+.lc-heatmap-cell-4 { background-color: rgba(var(--primary-rgb), 1); box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.4); }
+
+/* Scroll Top Fix */
+#scroll-top:hover {
+  transform: translateX(-50%) translateY(0) !important;
+}
+
+/* ============================================
+
    REDUCED MOTION
    ============================================ */
 @media (prefers-reduced-motion: reduce) {

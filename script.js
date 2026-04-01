@@ -231,7 +231,7 @@ function initMouseGlow() {
 // MAGNETIC TILT ON CARDS
 // ============================================
 function initMagneticTilt() {
-    const cards = document.querySelectorAll('.glass-card, .project-card-v2, .cert-dossier');
+    const cards = document.querySelectorAll('.glass-card:not(.lc-card-static), .project-card-v2, .cert-dossier');
     cards.forEach(card => {
         card.addEventListener('mousemove', (e) => {
             const rect = card.getBoundingClientRect();
@@ -406,6 +406,9 @@ async function fetchData() {
             initMagneticTilt();
         });
 
+        // Init Leetcode data
+        fetchLeetCodeData('Sahilydv_1610');
+
         initNameTypingLoop(data.personal.name);
         initRoleTypingLoop(data.personal.role);
     } catch (error) {
@@ -416,6 +419,181 @@ async function fetchData() {
 function setContent(id, content, isHTML = false) {
     const el = document.getElementById(id);
     if (el) el[isHTML ? 'innerHTML' : 'textContent'] = content;
+}
+
+// ============================================
+// LEETCODE DASHBOARD LOGIC
+// ============================================
+async function fetchLeetCodeData(username) {
+    try {
+        let solved, calendar, badges;
+        
+        // Try the primary API endpoint
+        const [solvedRes, calendarRes] = await Promise.all([
+            fetch(`https://alfa-leetcode-api.onrender.com/${username}/solved`).catch(() => null),
+            fetch(`https://alfa-leetcode-api.onrender.com/${username}/calendar`).catch(() => null)
+        ]);
+
+        if (!solvedRes || !solvedRes.ok || solvedRes.status === 429) {
+            console.warn("Primary API rate-limited or unavailable, switching to fallback...");
+            const fallbackRes = await fetch(`https://leetcode-api-faisalshohag.vercel.app/${username}`).catch(() => null);
+            
+            if (fallbackRes && fallbackRes.ok) {
+                const fbData = await fallbackRes.json();
+                
+                solved = {
+                    solvedProblem: fbData.totalSolved,
+                    easySolved: fbData.easySolved,
+                    mediumSolved: fbData.mediumSolved,
+                    hardSolved: fbData.hardSolved
+                };
+                
+                const activeDays = fbData.submissionCalendar ? Object.keys(fbData.submissionCalendar).length : 0;
+                
+                // Simple approx fallback streak calculation
+                let currentStreak = 0;
+                if (fbData.submissionCalendar) {
+                    const tsArray = Object.keys(fbData.submissionCalendar).map(Number).sort((a,b)=>b-a);
+                    if(tsArray.length > 0) {
+                        currentStreak = 1;
+                        for(let i=0; i<tsArray.length-1; i++) {
+                            // If difference is ~1 day (86400s)
+                            if (tsArray[i] - tsArray[i+1] <= 90000) {
+                                currentStreak++;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                calendar = {
+                    streak: currentStreak,
+                    totalActiveDays: activeDays,
+                    submissionCalendar: JSON.stringify(fbData.submissionCalendar)
+                };
+            }
+        } else {
+            solved = await solvedRes.json();
+            calendar = calendarRes && calendarRes.ok ? await calendarRes.json() : null;
+        }
+
+        renderLeetCodeDashboard({ solved, calendar });
+    } catch (error) {
+        console.error("Failed to fetch LeetCode data:", error);
+    }
+}
+
+function renderLeetCodeDashboard(data) {
+    // 1. Stats
+    if (data.solved && data.solved.solvedProblem) {
+        animateNumber('lc-total-solved', data.solved.solvedProblem);
+        animateNumber('lc-easy-solved', data.solved.easySolved);
+        animateNumber('lc-medium-solved', data.solved.mediumSolved);
+        animateNumber('lc-hard-solved', data.solved.hardSolved);
+    }
+
+    // 2. Calendar / Streak
+    if (data.calendar) {
+        animateNumber('lc-streak', data.calendar.streak || 0);
+        animateNumber('lc-active-days', data.calendar.totalActiveDays || 0);
+        
+        if (data.calendar.submissionCalendar) {
+            renderHeatmap(JSON.parse(data.calendar.submissionCalendar));
+        }
+    }
+}
+
+function animateNumber(id, end, duration = 2000) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const easeOut = progress * (2 - progress);
+        el.innerText = Math.floor(easeOut * end);
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            el.innerText = end;
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+
+function renderHeatmap(calData) {
+    const container = document.getElementById('lc-heatmap');
+    if (!container) return;
+    
+    const now = new Date();
+    const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    
+    const days = [];
+    for (let d = new Date(oneYearAgo); d <= now; d.setDate(d.getDate() + 1)) {
+        days.push(new Date(d));
+    }
+
+    const weeks = [];
+    let currentWeek = [];
+    
+    if (days[0].getDay() !== 0) {
+        for(let i=0; i<days[0].getDay(); i++) currentWeek.push(null);
+    }
+
+    // Parse once for performance
+    const subMap = {};
+    for (const [ts, count] of Object.entries(calData)) {
+        const d = new Date(parseInt(ts) * 1000);
+        // Correct timezone matching
+        const dateStr = d.toLocaleDateString('en-CA'); // YYYY-MM-DD local format roughly
+        if(!subMap[dateStr]) subMap[dateStr] = 0;
+        subMap[dateStr] += count;
+    }
+
+    days.forEach(day => {
+        const dateStr = day.toLocaleDateString('en-CA'); 
+        const count = subMap[dateStr] || 0;
+        
+        currentWeek.push({ date: dateStr, count: count });
+        
+        if (currentWeek.length === 7) {
+            weeks.push(currentWeek);
+            currentWeek = [];
+        }
+    });
+    
+    if (currentWeek.length > 0) {
+        while(currentWeek.length < 7) currentWeek.push(null);
+        weeks.push(currentWeek);
+    }
+
+    let html = '';
+    weeks.forEach(week => {
+        html += `<div class="flex flex-col gap-1">`;
+        week.forEach(day => {
+            if (!day) {
+                html += `<div class="w-3 h-3"></div>`;
+            } else {
+                let intensity = 0;
+                if (day.count > 0) intensity = 1;
+                if (day.count >= 2) intensity = 2;
+                if (day.count >= 4) intensity = 3;
+                if (day.count >= 6) intensity = 4;
+                
+                const tooltipText = `${day.count} submissions on ${day.date}`;
+                html += `<div class="lc-heatmap-cell lc-heatmap-cell-${intensity}" data-tooltip="${tooltipText}"></div>`;
+            }
+        });
+        html += `</div>`;
+    });
+    
+    container.innerHTML = html;
+    
+    const wrapper = container.parentElement;
+    requestAnimationFrame(() => {
+        wrapper.scrollLeft = wrapper.scrollWidth;
+    });
 }
 
 function renderPersonal(personal) {
@@ -665,11 +843,11 @@ const scrollTopBtn = document.getElementById('scroll-top');
 if (scrollTopBtn) {
     window.addEventListener('scroll', () => {
         if (window.scrollY > 400) {
-            scrollTopBtn.classList.add('opacity-100', 'scale-100', 'pointer-events-auto');
-            scrollTopBtn.classList.remove('opacity-0', 'scale-0', 'pointer-events-none');
+            scrollTopBtn.classList.add('opacity-100', 'pointer-events-auto');
+            scrollTopBtn.classList.remove('opacity-0', 'pointer-events-none');
         } else {
-            scrollTopBtn.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto');
-            scrollTopBtn.classList.add('opacity-0', 'scale-0', 'pointer-events-none');
+            scrollTopBtn.classList.remove('opacity-100', 'pointer-events-auto');
+            scrollTopBtn.classList.add('opacity-0', 'pointer-events-none');
         }
     }, { passive: true });
 
