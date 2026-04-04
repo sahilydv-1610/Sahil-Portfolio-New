@@ -16,3 +16,19 @@ I enjoy working with modern technologies and continuously improving my problem-s
 🛠️ Skills and tech stack display
 📬 Contact section
 🌙 Smooth animations & transitions
+
+🛠️ Tech Stack
+
+Frontend:
+
+HTML
+CSS / Tailwind CSS
+JavaScript
+
+Backend (if used):
+
+Node.js / PHP (depending on your version)
+
+Deployment:
+
+Vercel
