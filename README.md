@@ -2,3 +2,17 @@ A sleek and modern personal portfolio website showcasing my skills, projects, an
 
 🚀 Live Demo
 🔗 https://sahil-portfolio-new-rust.vercel.app/
+
+🧑‍💻 About Me
+
+I am a passionate developer focused on building scalable and user-friendly web applications.
+I enjoy working with modern technologies and continuously improving my problem-solving skills.
+
+✨ Features
+🖥️ Clean and modern UI/UX
+📱 Fully responsive design (mobile-friendly)
+⚡ Fast performance (deployed on Vercel)
+📂 Project showcase section
+🛠️ Skills and tech stack display
+📬 Contact section
+🌙 Smooth animations & transitions
