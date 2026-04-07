@@ -4,7 +4,7 @@ const portfolioData = {
     "role": "Full Stack Developer",
     "profileImage": "assets/profile.jpg",
     "bio": "A passionate developer with a knack for creating beautiful and functional web applications. Experienced in modern web technologies and always eager to learn new things.",
-    "cvUrl": "assets/sahil cv2.pdf",
+    "cvUrl": "assets/Sahil New Updated Cv.pdf",
     "social": [
       { "platform": "GitHub", "url": "https://github.com/sahilydv-1610", "icon": "github" },
       { "platform": "LinkedIn", "url": "https://www.linkedin.com/in/sahil-sahil-236482251", "icon": "linkedin" },
